@@ -166,8 +166,8 @@ def writeresult(pgdict, video_path, video_save_folder):
     fps = cap.get(cv2.CAP_PROP_FPS)
     os.makedirs(video_save_folder, exist_ok=True)
     video_name = video_path.split("/")[-1]
-    first_key = next(iter(pgdict))
-    gallery_name = pgdict[first_key].split("-")[0]
+    first_key = next(iter(pgdict)) if pgdict else None
+    gallery_name = pgdict[first_key].split("-")[0] if first_key else "unknown"
     probe_name = video_name
     # save_video_path = save_video_name.split(".")[0]+ "-After.mp4"
     save_video_name = "G-{}_P-{}".format(gallery_name, probe_name)
@@ -202,10 +202,16 @@ def writeresult(pgdict, video_path, video_save_folder):
                     track_id = t.track_id - diff
 
                     pid = "{}-{:03d}".format(video_name, track_id)
-                    tid = pgdict[pid]
-                    # demo
-                    colorid = int(tid.split("-")[1])
-                    # colorid = track_id
+                    # Check if pid exists in pgdict, use a default if it doesn't
+                    if pid in pgdict:
+                        tid = pgdict[pid]
+                        # demo
+                        colorid = int(tid.split("-")[1])
+                    else:
+                        # Use a default for unmatched IDs
+                        tid = "unmatched-000"
+                        colorid = 0  # Use first color for unmatched
+                    
                     vertical = tlwh[2] / tlwh[3] > 1.6
                     if tlwh[2] * tlwh[3] > 10 and not vertical:
                         online_tlwhs.append(tlwh)
