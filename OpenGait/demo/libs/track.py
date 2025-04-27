@@ -160,6 +160,14 @@ def writeresult(pgdict, video_path, video_save_folder):
         pgdict = {}
         print(f"No matches found within threshold for {video_path.split('/')[-1]}. Video will show unmatched persons.")
         
+    # Get distances dictionary if it's an extended format of pgdict with (id, distance) tuples
+    distances = {}
+    for pid, gallery_info in pgdict.items():
+        if isinstance(gallery_info, tuple) and len(gallery_info) == 2:
+            # If gallery_info is a tuple (gallery_id, distance)
+            distances[pid] = gallery_info[1]
+            pgdict[pid] = gallery_info[0]  # Update pgdict to contain only the ID
+    
     device = torch.device("cuda" if track_cfgs["device"] == "gpu" else "cpu")
     trt_file = None
     decoder = None
@@ -197,6 +205,10 @@ def writeresult(pgdict, video_path, video_save_folder):
     results = []
     mark = True
     diff = 0
+    
+    # Create a dictionary to store distance information
+    distance_info = {}
+    
     for i in tqdm(range(frame_count)):
         ret_val, frame = cap.read()
         if ret_val:
@@ -207,6 +219,8 @@ def writeresult(pgdict, video_path, video_save_folder):
                 online_ids = []
                 online_colors = []
                 online_scores = []
+                online_distances = []  # New list to store distances
+                
                 for t in online_targets:
                     tlwh = t.tlwh
                     if mark:
@@ -220,10 +234,13 @@ def writeresult(pgdict, video_path, video_save_folder):
                         tid = pgdict[pid]
                         # demo
                         colorid = int(tid.split("-")[1])
+                        # Get distance if available
+                        distance = distances.get(pid, None)
                     else:
                         # Use a default for unmatched IDs
                         tid = "unmatched-000"
                         colorid = 0  # Use first color for unmatched
+                        distance = None
                     
                     vertical = tlwh[2] / tlwh[3] > 1.6
                     if tlwh[2] * tlwh[3] > 10 and not vertical:
@@ -231,12 +248,15 @@ def writeresult(pgdict, video_path, video_save_folder):
                         online_ids.append(tid)
                         online_colors.append(colorid)
                         online_scores.append(t.score)
+                        online_distances.append(distance)  # Add distance info
                         results.append(
                             f"{frame_id},{tid},{tlwh[0]:.2f},{tlwh[1]:.2f},{tlwh[2]:.2f},{tlwh[3]:.2f},{t.score:.2f},-1,-1,-1\n"
                         )
                 timer.toc()
                 online_im = plot_track(
-                    img_info['raw_img'], online_tlwhs, online_ids, online_colors, frame_id=frame_id + 1, fps=1. / timer.average_time
+                    img_info['raw_img'], online_tlwhs, online_ids, online_colors, 
+                    frame_id=frame_id + 1, fps=1. / timer.average_time, 
+                    distances=online_distances  # Pass distances to plot_track
                 )
             else:
                 timer.toc()

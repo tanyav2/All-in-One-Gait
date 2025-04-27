@@ -68,7 +68,7 @@ def gaitfeat_compare(probe_feat:dict, gallery_feat:dict, threshold=100):
         gallery_feat (dict): Dictionary of gallery's features
         threshold (float): Threshold beyond which detection fails
     Returns:
-        pg_dicts (dict): The id of probe corresponds to the id of gallery
+        pg_dicts (dict): The id of probe corresponds to the id of gallery with distance info
     """
     item = list(probe_feat.keys())
     probe = item[0]
@@ -82,7 +82,7 @@ def gaitfeat_compare(probe_feat:dict, gallery_feat:dict, threshold=100):
         galleryid, idsdict = gc.comparefeat(inputs[number]['undefined'], gallery_feat, probeid, threshold)
         if galleryid is not None:
             all_matches_failed = False
-        pg_dict[probeid] = galleryid
+        pg_dict[probeid] = galleryid  # Now galleryid will be a tuple (id, distance)
         pg_dicts[probeid] = idsdict
     
     # Return None if all matches failed to be within threshold

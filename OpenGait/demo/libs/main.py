@@ -63,7 +63,7 @@ def main():
     probe4_feat  = extract_sil(probe4_silhouette , save_root+'/GaitFeatures/')
 
     # Use a threshold of 9.0 for detection
-    threshold = 10.0
+    threshold = 11.5
     print(f"\n\n===== USING THRESHOLD: {threshold} =====")
     print("Only matches with distances below this threshold will be considered valid.")
     

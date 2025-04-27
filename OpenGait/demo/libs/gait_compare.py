@@ -43,7 +43,7 @@ def comparefeat(embs, gallery_feat: dict, pid, threshold_value):
         pid (str): The id of person in probe
         threshold_value (int): Threshold
     Returns:
-        id (str): The id in gallery
+        id (str or tuple): The id in gallery with distance (if match found) or None
         dic_sort (dict): Recognition result sorting dictionary
     """
     probe_name = pid.split("-")[0]
@@ -62,7 +62,7 @@ def comparefeat(embs, gallery_feat: dict, pid, threshold_value):
                     gid_distance = (gid, distance)
                     dic[gid] = distance
                     if distance.float() < min_distance:
-                        id = gid
+                        id = (gid, distance)  # Return both ID and distance as tuple
                         min_distance = distance.float()
                         print(f"Match found: {pid} -> {gid}, Distance: {min_distance}")
     dic_sort= sorted(dic.items(), key=lambda d:d[1], reverse = False)
