@@ -2,12 +2,13 @@ import os
 import os.path as osp
 import time
 import sys
+import glob
 sys.path.append(os.path.abspath('.') + "/demo/libs/")
 from track import *
 from segment import *
 from recognise import *
 
-def main():
+def main(gallery_path=None, probe_paths=None, input_dir=None, threshold=11.5):
     output_dir = "./demo/output/OutputVideos/"
     os.makedirs(output_dir, exist_ok=True)
     current_time = time.localtime()
@@ -15,79 +16,99 @@ def main():
     video_save_folder = osp.join(output_dir, timestamp)
     
     save_root = './demo/output/'
-    gallery_video_path = "./demo/output/InputVideos/gallery.mp4"
-    probe1_video_path  = "./demo/output/InputVideos/probe1.mp4"
-    probe2_video_path  = "./demo/output/InputVideos/probe2.mp4"
-    probe3_video_path  = "./demo/output/InputVideos/probe3.mp4"
-    probe4_video_path  = "./demo/output/InputVideos/probe4.mp4"
+    
+    # Set default gallery path if not provided
+    if gallery_path is None:
+        gallery_path = "./demo/output/InputVideos/gallery.mp4"
 
-    # tracking
-    gallery_track_result = track(gallery_video_path, video_save_folder)
-    probe1_track_result  = track(probe1_video_path, video_save_folder)
-    probe2_track_result  = track(probe2_video_path, video_save_folder)
-    probe3_track_result  = track(probe3_video_path, video_save_folder)
-    probe4_track_result  = track(probe4_video_path, video_save_folder)
-
-    gallery_video_name = gallery_video_path.split("/")[-1]
+    # Get probe paths either from arguments, input directory, or default
+    if probe_paths is None:
+        if input_dir is not None:
+            # Get all video files from input directory
+            probe_paths = glob.glob(os.path.join(input_dir, "*.mp4"))
+            # Filter out gallery video if it's in the same directory
+            probe_paths = [p for p in probe_paths if p != gallery_path]
+        else:
+            # Use default probe paths
+            probe_paths = [
+                "./demo/output/InputVideos/probe1.mp4",
+                "./demo/output/InputVideos/probe2.mp4",
+                "./demo/output/InputVideos/probe3.mp4", 
+                "./demo/output/InputVideos/probe4.mp4"
+            ]
+    
+    # Process gallery video
+    gallery_track_result = track(gallery_path, video_save_folder)
+    gallery_video_name = gallery_path.split("/")[-1]
     gallery_video_name = save_root+'/GaitSilhouette/'+gallery_video_name.split(".")[0]
-    probe1_video_name  = probe1_video_path.split("/")[-1]
-    probe1_video_name  = save_root+'/GaitSilhouette/'+probe1_video_name.split(".")[0]
-    probe2_video_name  = probe2_video_path.split("/")[-1]
-    probe2_video_name  = save_root+'/GaitSilhouette/'+probe2_video_name.split(".")[0]
-    probe3_video_name  = probe3_video_path.split("/")[-1]
-    probe3_video_name  = save_root+'/GaitSilhouette/'+probe3_video_name.split(".")[0]
-    probe4_video_name  = probe4_video_path.split("/")[-1]
-    probe4_video_name  = save_root+'/GaitSilhouette/'+probe4_video_name.split(".")[0]
-    exist = os.path.exists(gallery_video_name) and os.path.exists(probe1_video_name) \
-            and os.path.exists(probe2_video_name) and os.path.exists(probe3_video_name) \
-            and os.path.exists(probe4_video_name)
-    print(exist)
-    if exist:
-        gallery_silhouette = getsil(gallery_video_path, save_root+'/GaitSilhouette/')
-        probe1_silhouette  = getsil(probe1_video_path , save_root+'/GaitSilhouette/')
-        probe2_silhouette  = getsil(probe2_video_path , save_root+'/GaitSilhouette/')
-        probe3_silhouette  = getsil(probe3_video_path , save_root+'/GaitSilhouette/')
-        probe4_silhouette  = getsil(probe4_video_path , save_root+'/GaitSilhouette/')
-    else:
-        gallery_silhouette = seg(gallery_video_path, gallery_track_result, save_root+'/GaitSilhouette/')
-        probe1_silhouette  = seg(probe1_video_path , probe1_track_result , save_root+'/GaitSilhouette/')
-        probe2_silhouette  = seg(probe2_video_path , probe2_track_result , save_root+'/GaitSilhouette/')
-        probe3_silhouette  = seg(probe3_video_path , probe3_track_result , save_root+'/GaitSilhouette/')
-        probe4_silhouette  = seg(probe4_video_path , probe4_track_result , save_root+'/GaitSilhouette/')
-
-    # recognise
-    gallery_feat = extract_sil(gallery_silhouette, save_root+'/GaitFeatures/')
-    probe1_feat  = extract_sil(probe1_silhouette , save_root+'/GaitFeatures/')
-    probe2_feat  = extract_sil(probe2_silhouette , save_root+'/GaitFeatures/')
-    probe3_feat  = extract_sil(probe3_silhouette , save_root+'/GaitFeatures/')
-    probe4_feat  = extract_sil(probe4_silhouette , save_root+'/GaitFeatures/')
-
-    # Use a threshold of 9.0 for detection
-    threshold = 11.5
+    
+    # Process all probe videos
+    probe_results = []
+    for probe_path in probe_paths:
+        # Track the probe video
+        probe_track_result = track(probe_path, video_save_folder)
+        
+        # Get silhouette path
+        probe_video_name = probe_path.split("/")[-1]
+        probe_silhouette_path = save_root+'/GaitSilhouette/'+probe_video_name.split(".")[0]
+        
+        # Check if silhouette already exists
+        if os.path.exists(gallery_video_name) and os.path.exists(probe_silhouette_path):
+            gallery_silhouette = getsil(gallery_path, save_root+'/GaitSilhouette/')
+            probe_silhouette = getsil(probe_path, save_root+'/GaitSilhouette/')
+        else:
+            gallery_silhouette = seg(gallery_path, gallery_track_result, save_root+'/GaitSilhouette/')
+            probe_silhouette = seg(probe_path, probe_track_result, save_root+'/GaitSilhouette/')
+        
+        # Extract features
+        gallery_feat = extract_sil(gallery_silhouette, save_root+'/GaitFeatures/')
+        probe_feat = extract_sil(probe_silhouette, save_root+'/GaitFeatures/')
+        
+        # Compare with gallery
+        probe_result = compare(probe_feat, gallery_feat, threshold)
+        
+        # Check if match was found
+        if probe_result is None:
+            print(f"WARNING: No matches found for {probe_path} within the threshold.")
+        
+        # Write results to video
+        writeresult(probe_result, probe_path, video_save_folder)
+        
+        # Store results
+        probe_results.append({
+            'path': probe_path,
+            'result': probe_result
+        })
+    
+    # Print summary
     print(f"\n\n===== USING THRESHOLD: {threshold} =====")
     print("Only matches with distances below this threshold will be considered valid.")
+    print(f"Processed {len(probe_paths)} probe videos against gallery video {gallery_path}")
     
-    gallery_probe1_result = compare(probe1_feat, gallery_feat, threshold)
-    gallery_probe2_result = compare(probe2_feat, gallery_feat, threshold)
-    gallery_probe3_result = compare(probe3_feat, gallery_feat, threshold)
-    gallery_probe4_result = compare(probe4_feat, gallery_feat, threshold)
-
-    # Check if any matches were found
-    if gallery_probe1_result is None:
-        print("WARNING: No matches found for probe1 within the threshold.")
-    if gallery_probe2_result is None:
-        print("WARNING: No matches found for probe2 within the threshold.")
-    if gallery_probe3_result is None:
-        print("WARNING: No matches found for probe3 within the threshold.")
-    if gallery_probe4_result is None:
-        print("WARNING: No matches found for probe4 within the threshold.")
-
-    # write the result back to the video
-    writeresult(gallery_probe1_result, probe1_video_path, video_save_folder)
-    writeresult(gallery_probe2_result, probe2_video_path, video_save_folder)
-    writeresult(gallery_probe3_result, probe3_video_path, video_save_folder)
-    writeresult(gallery_probe4_result, probe4_video_path, video_save_folder)
+    return probe_results
 
 
 if __name__ == "__main__":
-    main()
+    # Parse command line arguments if provided
+    if len(sys.argv) > 1:
+        # Default threshold value
+        threshold_val = 11.5
+        
+        gallery_path = sys.argv[1]
+        
+        # Check if last argument is a threshold value
+        if len(sys.argv) > 2 and sys.argv[-1].startswith("--threshold="):
+            threshold_str = sys.argv[-1].split("=")[1]
+            try:
+                threshold_val = float(threshold_str)
+                # Remove threshold from arguments list
+                probe_paths = sys.argv[2:-1] if len(sys.argv) > 3 else None
+            except ValueError:
+                # Not a valid threshold, treat as a probe path
+                probe_paths = sys.argv[2:] if len(sys.argv) > 2 else None
+        else:
+            probe_paths = sys.argv[2:] if len(sys.argv) > 2 else None
+            
+        main(gallery_path=gallery_path, probe_paths=probe_paths, threshold=threshold_val)
+    else:
+        main()
