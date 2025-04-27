@@ -175,8 +175,11 @@ def writeresult(pgdict, video_path, video_save_folder):
     # Get gallery name or use "unknown" if no matches
     gallery_name = "unknown"
     if pgdict:
-        first_key = next(iter(pgdict))
-        gallery_name = pgdict[first_key].split("-")[0]
+        # Find a non-None value to get the gallery name
+        for key, value in pgdict.items():
+            if value is not None:
+                gallery_name = value.split("-")[0]
+                break
         
     probe_name = video_name
     # save_video_path = save_video_name.split(".")[0]+ "-After.mp4"
