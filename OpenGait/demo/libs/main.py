@@ -62,10 +62,25 @@ def main():
     probe3_feat  = extract_sil(probe3_silhouette , save_root+'/GaitFeatures/')
     probe4_feat  = extract_sil(probe4_silhouette , save_root+'/GaitFeatures/')
 
-    gallery_probe1_result = compare(probe1_feat, gallery_feat)
-    gallery_probe2_result = compare(probe2_feat, gallery_feat)
-    gallery_probe3_result = compare(probe3_feat, gallery_feat)
-    gallery_probe4_result = compare(probe4_feat, gallery_feat)
+    # Use a threshold of 9.0 for detection
+    threshold = 10.0
+    print(f"\n\n===== USING THRESHOLD: {threshold} =====")
+    print("Only matches with distances below this threshold will be considered valid.")
+    
+    gallery_probe1_result = compare(probe1_feat, gallery_feat, threshold)
+    gallery_probe2_result = compare(probe2_feat, gallery_feat, threshold)
+    gallery_probe3_result = compare(probe3_feat, gallery_feat, threshold)
+    gallery_probe4_result = compare(probe4_feat, gallery_feat, threshold)
+
+    # Check if any matches were found
+    if gallery_probe1_result is None:
+        print("WARNING: No matches found for probe1 within the threshold.")
+    if gallery_probe2_result is None:
+        print("WARNING: No matches found for probe2 within the threshold.")
+    if gallery_probe3_result is None:
+        print("WARNING: No matches found for probe3 within the threshold.")
+    if gallery_probe4_result is None:
+        print("WARNING: No matches found for probe4 within the threshold.")
 
     # write the result back to the video
     writeresult(gallery_probe1_result, probe1_video_path, video_save_folder)

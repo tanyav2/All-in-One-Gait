@@ -47,7 +47,7 @@ def comparefeat(embs, gallery_feat: dict, pid, threshold_value):
         dic_sort (dict): Recognition result sorting dictionary
     """
     probe_name = pid.split("-")[0]
-    min = threshold_value
+    min_distance = threshold_value
     id = None
     dic={}
     for key in gallery_feat:
@@ -61,10 +61,11 @@ def comparefeat(embs, gallery_feat: dict, pid, threshold_value):
                     gid = key + "-" + str(type)
                     gid_distance = (gid, distance)
                     dic[gid] = distance
-                    if distance.float() < min:
+                    if distance.float() < min_distance:
                         id = gid
-                        min = distance.float()
+                        min_distance = distance.float()
+                        print(f"Match found: {pid} -> {gid}, Distance: {min_distance}")
     dic_sort= sorted(dic.items(), key=lambda d:d[1], reverse = False)
     if id is None:
-        print("############## no id #####################")
+        print(f"No match found for {pid} within threshold {threshold_value}")
     return id, dic_sort

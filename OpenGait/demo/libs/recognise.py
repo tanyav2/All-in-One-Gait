@@ -60,12 +60,13 @@ def gait_sil(sils, embs_save_path):
         feats[id].append(feat)        
     return feats    
 
-def gaitfeat_compare(probe_feat:dict, gallery_feat:dict):
+def gaitfeat_compare(probe_feat:dict, gallery_feat:dict, threshold=100):
     """Compares the feature between probe and gallery
 
     Args:
         probe_feat (dict): Dictionary of probe's features
         gallery_feat (dict): Dictionary of gallery's features
+        threshold (float): Threshold beyond which detection fails
     Returns:
         pg_dicts (dict): The id of probe corresponds to the id of gallery
     """
@@ -73,14 +74,20 @@ def gaitfeat_compare(probe_feat:dict, gallery_feat:dict):
     probe = item[0]
     pg_dict = {}
     pg_dicts = {}
+    all_matches_failed = True
+    
     for inputs in probe_feat[probe]:
         number = list(inputs.keys())[0]
         probeid = probe + "-" + number
-        galleryid, idsdict = gc.comparefeat(inputs[number]['undefined'], gallery_feat, probeid, 100)
+        galleryid, idsdict = gc.comparefeat(inputs[number]['undefined'], gallery_feat, probeid, threshold)
+        if galleryid is not None:
+            all_matches_failed = False
         pg_dict[probeid] = galleryid
         pg_dicts[probeid] = idsdict
-    # print("=================== pg_dicts ===================")
-    # print(pg_dicts)
+    
+    # Return None if all matches failed to be within threshold
+    if all_matches_failed:
+        return None
     return pg_dict
 
 def extract_sil(sil, save_path):
@@ -98,17 +105,18 @@ def extract_sil(sil, save_path):
     return video_feat
 
 
-def compare(probe_feat, gallery_feat):
+def compare(probe_feat, gallery_feat, threshold=100):
     """Recognizes  the features between probe and gallery
 
     Args:
         probe_feat (dict): Dictionary of probe's features
         gallery_feat (dict): Dictionary of gallery's features
+        threshold (float): Threshold beyond which detection fails
     Returns:
         pgdict (dict): The id of probe corresponds to the id of gallery
     """
     logger.info("begin recognising")
-    pgdict = gaitfeat_compare(probe_feat, gallery_feat)
+    pgdict = gaitfeat_compare(probe_feat, gallery_feat, threshold)
     logger.info("recognise Done")
     print("================= probe - gallery ===================")
     print(pgdict)

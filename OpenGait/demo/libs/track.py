@@ -155,6 +155,11 @@ def writeresult(pgdict, video_path, video_save_folder):
         video_path (Path): Path of input video
         video_save_folder (Path): Tracking video storage root path after processing
     """
+    # Handle the case when no matches were found (pgdict is None)
+    if pgdict is None:
+        pgdict = {}
+        print(f"No matches found within threshold for {video_path.split('/')[-1]}. Video will show unmatched persons.")
+        
     device = torch.device("cuda" if track_cfgs["device"] == "gpu" else "cpu")
     trt_file = None
     decoder = None
@@ -166,8 +171,13 @@ def writeresult(pgdict, video_path, video_save_folder):
     fps = cap.get(cv2.CAP_PROP_FPS)
     os.makedirs(video_save_folder, exist_ok=True)
     video_name = video_path.split("/")[-1]
-    first_key = next(iter(pgdict)) if pgdict else None
-    gallery_name = pgdict[first_key].split("-")[0] if first_key else "unknown"
+    
+    # Get gallery name or use "unknown" if no matches
+    gallery_name = "unknown"
+    if pgdict:
+        first_key = next(iter(pgdict))
+        gallery_name = pgdict[first_key].split("-")[0]
+        
     probe_name = video_name
     # save_video_path = save_video_name.split(".")[0]+ "-After.mp4"
     save_video_name = "G-{}_P-{}".format(gallery_name, probe_name)
@@ -203,7 +213,7 @@ def writeresult(pgdict, video_path, video_save_folder):
 
                     pid = "{}-{:03d}".format(video_name, track_id)
                     # Check if pid exists in pgdict, use a default if it doesn't
-                    if pid in pgdict:
+                    if pid in pgdict and pgdict[pid] is not None:
                         tid = pgdict[pid]
                         # demo
                         colorid = int(tid.split("-")[1])
